@@ -1,0 +1,5 @@
+build/
+# .vscode/
+
+test.cpp
+test.exe
