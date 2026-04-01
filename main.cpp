@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
     table.setColumnCount(3); // ここは列が3
 
     QStringList headers = {"名称", "分類", "詳細"}; // 型名的にQt用の文字列リスト？vectorとかとは何が違う？
-    table.setHorizontalHeaderLabels(headers); // 英語ムズイ、
+    table.setHorizontalHeaderLabels(headers); // 英語ムズイ、が
 
     table.setItem(0, 0, new QTableWidgetItem("ベホイミ")); // 恐らく1行1列目に入れる内容
     table.setItem(0, 1, new QTableWidgetItem("呪文")); // こっちも1行2列目だろうね
