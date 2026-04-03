@@ -1,16 +1,10 @@
 #include <QApplication>
 #include <QTableWidget>
-#include <ioStream>
-// #include <QString>
-// #include <QMap>
-// #include <QVariant>
-// #include <vector>
-// #include <functional>
 
 // 列の型定義
 enum class ColumnType{
     Int,    // 整数型
-    Float, // 少数型
+    Float,  // 小数型
     Select, // 選択型
     String, // 文字列型
 };
@@ -32,56 +26,116 @@ class RandomTable{
     std::vector<ColumnDefine> columnDefines;
     std::vector<QHash<QString, QVariant>> tableData;
 public:
+    // コンストラクタ
     RandomTable(){
         columnDefines.push_back(ID_DEFINE);
         columnDefines.push_back(NAME_DEFINE);
         columnDefines.push_back(RANDOM_DEFINE);
     }
 
+    // 列追加
     void addColumnDef(const ColumnDefine& colDef){
         columnDefines.push_back(colDef);
     }
-    void addRowData(QHash<QString, QVariant>& rowData){
+    // 行追加
+    void addRowData(const QHash<QString, QVariant>& rowData){
         tableData.push_back(rowData);
     }
 
-    auto getFieldNames(){
-        std::vector<QString> fieldNames;
+    // 列数
+    size_t colLen() const {
+        return columnDefines.size();
+    }
+
+    // 行数
+    size_t rowLen() const {
+        return tableData.size();
+    }
+
+    // 列名
+    auto getFieldNames() const {
+        QStringList fieldNames;
+
         for(auto& colDef: columnDefines){
-            fieldNames.push_back(colDef.name);
+            fieldNames << colDef.name;
         }
         return fieldNames;
     }
+
+    // 列の型の取得
+    auto getColumnType() const {
+        QHash<QString, ColumnType> columnType;
+        for(auto& colDef: columnDefines){
+            columnType[colDef.key] = colDef.Type;
+        }
+        return columnType;
+    }
+
+    // 行データの順序取得
+    auto getSequenceRowData(size_t row) const {
+        std::vector<QVariant> sequenceRowData;
+        
+        if(rowLen() <= row){
+            throw std::out_of_range("index out of range");
+        }
+
+        const auto& rowData = tableData[row];
+        for(auto& colDef: columnDefines){
+            if(rowData.contains(colDef.key)){
+                sequenceRowData.push_back(rowData[colDef.key]);
+            }else{
+                sequenceRowData.push_back(QVariant());
+            }
+        }
+
+        return sequenceRowData;
+    }
+
+
 };
 
 int main(int argc, char* argv[]){
     // Qapp定義
     QApplication app(argc, argv);
 
-    // 行定義
-    ColumnDefine colDef[] = {
-        {"id", "ID", ColumnType::Int},
-        {"name", "名前", ColumnType::String},
-        {"random", "乱数", ColumnType::Float},
-    };
+    // テーブル定義
+    RandomTable randomTable;
 
     // 行内容
-    QHash<QString, QVariant> data;
-    data[""] = "";
-    data["a"] = "b";
+    QHash<QString, QVariant> rowData;
+    rowData[ID_DEFINE.key] = 1;
+    rowData[NAME_DEFINE.key] = "ベホイミ";
+    rowData[RANDOM_DEFINE.key] = 0.876;
+    randomTable.addRowData(rowData);
 
+    // テーブル
     QTableWidget table;
 
-    // table.setRowCount(3);
-    // table.setColumnCount(3);
+    // テーブルサイズ
+    table.setRowCount(randomTable.rowLen());
+    table.setColumnCount(randomTable.colLen());
 
-    // QStringList headers = {"名称", "分類", "詳細"};
-    // table.setHorizontalHeaderLabels(headers);
+    // タイトル行
+    table.setHorizontalHeaderLabels(randomTable.getFieldNames());
 
-    // table.setItem(0, 0, new QTableWidgetItem("ベホイミ"));
-    // table.setItem(0, 1, new QTableWidgetItem("呪文"));
-    // table.setItem(0, 2, new QTableWidgetItem("回復"));
+    // テーブル内容
+    size_t rowLen = randomTable.rowLen();
+    for(size_t i=0;i<rowLen;i++){
+        size_t j = 0;
+        for(auto& cellData: randomTable.getSequenceRowData(i)){
+            auto* item = new QTableWidgetItem();
+            item->setData(Qt::DisplayRole, cellData);
 
+            table.setItem(i, j, item);
+            j++;
+        }
+
+    }
+
+    // ソート可能
+    table.setSortingEnabled(true);
+
+    // 表示
     table.show();
 
     return app.exec();
