@@ -1,0 +1,26 @@
+{
+    "fields": [
+        {
+            "key": "ID",
+            "name": "ID",
+            "type": "int"
+        },
+        {
+            "key": "Name",
+            "name": "名前",
+            "type": "string"
+        },
+        {
+            "key": "Random",
+            "name": "乱数",
+            "type": "float"
+        }
+    ],
+    "data": [
+        {
+            "ID": 1,
+            "Name": "ベホイミ",
+            "Random": 0.876
+        }
+    ]
+}
