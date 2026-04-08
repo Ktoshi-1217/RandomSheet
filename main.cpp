@@ -24,59 +24,139 @@ struct ColumnDefine{
 };
 
 // 必須行の定義
-const ColumnDefine ID_DEFINE = {"ID", "ID", ColumnType::Int};
-const ColumnDefine NAME_DEFINE = {"Name", "名前", ColumnType::String};
-const ColumnDefine RANDOM_DEFINE = {"Random", "乱数", ColumnType::Float};
+constexpr auto ID_KEY = "ID";
+constexpr auto NAME_KEY = "Name";
+constexpr auto RANDOM_KEY = "Random";
 
-const std::set<QString> RequiredKey = {"ID", "Name", "Random"};
+const ColumnDefine ID_DEFINE = {ID_KEY, "ID", ColumnType::Int};
+const ColumnDefine NAME_DEFINE = {NAME_KEY, "名前", ColumnType::String};
+const ColumnDefine RANDOM_DEFINE = {RANDOM_KEY, "乱数", ColumnType::Float};
+
+const QVector<QString> RequiredKey = {ID_KEY, "Name", "Random"};
 
 // ランダムテーブル
 class RandomTable{
-    std::vector<ColumnDefine> columnDefines;
-    std::set<QString> columnKeySet;
-    std::vector<QHash<QString, QVariant>> tableData;
+    QVector<ColumnDefine> columnDefines;    // 列定義
+    QSet<QString> columnKeySet;             // 列Key重複チェック
+    QVector<QHash<QString, QVariant>> tableData;    // テーブルデータ
+    int lastID = 0; // 最後に追加されたID
+    QSet<int> usedID; // 使用済みID
+
+    // ID自動採番
+    int nextID(){
+        while(usedID.contains(++lastID));
+        return lastID;
+    }
 
 public:
     // コンストラクタ
     RandomTable(){
-        columnDefines.push_back(ID_DEFINE);
-        columnDefines.push_back(NAME_DEFINE);
-        columnDefines.push_back(RANDOM_DEFINE);
+        columnDefines.append(ID_DEFINE);
+        columnDefines.append(NAME_DEFINE);
+        columnDefines.append(RANDOM_DEFINE);
     }
 
-    // 列定義済みコンストラクタ
-    RandomTable(const std::vector<ColumnDefine>& initColDefs){
-        // 必須キーの数
-        size_t isRequiredKey = 0;
+    // 列定義済みコンストラクタ(vector)
+    RandomTable(const std::vector<ColumnDefine>& initColDefs)
+        : RandomTable(QVector<ColumnDefine>(initColDefs.begin(), initColDefs.end()))
+    {}
 
+    // 列定義済みコンストラクタ
+    RandomTable(const QVector<ColumnDefine>& initColDefs){
+        // 1列ずつ
         for(const auto& colDef: initColDefs){
-            if(!columnKeySet.insert(colDef.key).second){
+            // 重複確認
+            if(columnKeySet.contains(colDef.key)){
                 throw std::runtime_error("Duplicate column key: " + colDef.key.toStdString());
             }
+            columnKeySet.insert(colDef.key);
 
-            if(RequiredKey.count(colDef.key)){
-                isRequiredKey++;
-            }
-
-            columnDefines.push_back(colDef);
+            // 追加
+            columnDefines.append(colDef);
         }
 
-        if(isRequiredKey != RequiredKey.size()){
-            throw std::runtime_error("Not required key");
+        // 必須キーがない場合エラー
+        for (const auto& req : RequiredKey) {
+            if (!columnKeySet.contains(req)) {
+                throw std::runtime_error(
+                    ("missing required key: " + req).toStdString()
+                );
+            }
         }
     }
 
     // 列追加
     void addColumnDef(const ColumnDefine& colDef){
-        if(!columnKeySet.count(colDef.key)){
-            throw std::runtime_error("Key is defined");
+        // 重複チェック
+        if(columnKeySet.contains(colDef.key)){
+            throw std::runtime_error("Duplicate column key: " + colDef.key.toStdString());
+        }
+        columnKeySet.insert(colDef.key);
+
+        // 追加
+        columnDefines.append(colDef);
+    }
+
+    // 行追加
+    void addRowData(QHash<QString, QVariant> rowData){
+        
+        /* 必須列チェック */
+        // Nameチェック
+        if(!rowData.contains(NAME_KEY)){
+            throw std::runtime_error(
+                std::string("required key Not Found: ") + NAME_KEY
+            );
+        }        
+
+        // IDチェック
+        if(rowData.contains(ID_KEY)){
+            if(usedID.contains(rowData[ID_KEY].toInt())){
+                throw std::runtime_error(
+                    "Duplicate ID: " + rowData[ID_KEY].toString().toStdString()
+                );
+            }
+        }else{
+            rowData[ID_KEY] = nextID();
+        }
+        lastID = rowData[ID_KEY].toInt();
+        usedID.insert(lastID);
+
+        // Randomチェック
+        if(!rowData.contains(RANDOM_KEY)){
+            rowData[RANDOM_KEY] = 0.0;
         }
 
-        columnDefines.push_back(colDef);
-    }
-    // 行追加
-    void addRowData(const QHash<QString, QVariant>& rowData){
-        tableData.push_back(rowData);
+        /* 型チェック */
+        for(const auto& colDef: columnDefines){
+            if(!rowData.contains(colDef.key)){
+                continue;
+            }
+
+            bool isOk = false;
+            const auto& checkCol = rowData[colDef.key];
+            switch(colDef.Type){
+                case ColumnType::Int:
+                    checkCol.toInt(&isOk);
+                    break;
+                case ColumnType::Float:
+                    checkCol.toDouble(&isOk);
+                    break;
+                case ColumnType::Select:
+                    checkCol.toInt(&isOk);
+                    break;
+                case ColumnType::String:
+                    isOk = true;
+                    break;
+            }
+
+            if(!isOk){
+                throw std::runtime_error(
+                    "Column type is different: " + colDef.key.toStdString()
+                );
+            }
+        }
+
+        tableData.append(rowData);
     }
 
     // 列数
@@ -110,7 +190,7 @@ public:
 
     // 行データの順序取得
     auto getSequenceRowData(size_t row) const {
-        std::vector<QVariant> sequenceRowData;
+        QList<QVariant> sequenceRowData;
         
         if(rowLen() <= row){
             throw std::out_of_range("index out of range");
@@ -119,9 +199,9 @@ public:
         const auto& rowData = tableData[row];
         for(auto& colDef: columnDefines){
             if(rowData.contains(colDef.key)){
-                sequenceRowData.push_back(rowData[colDef.key]);
+                sequenceRowData.append(rowData[colDef.key]);
             }else{
-                sequenceRowData.push_back(QVariant());
+                sequenceRowData.append(QVariant());
             }
         }
 
@@ -164,7 +244,7 @@ int main(int argc, char* argv[]){
     
     // 列定義
     QJsonArray fields = root["fields"].toArray();
-    std::vector<ColumnDefine> columnDefines;
+    QVector<ColumnDefine> columnDefines;
 
     for(const auto& f: fields){
         QJsonObject obj = f.toObject();
@@ -176,10 +256,11 @@ int main(int argc, char* argv[]){
         QString typeStr = obj["type"].toString();
         if (typeStr == "int") col.Type = ColumnType::Int;
         else if (typeStr == "float") col.Type = ColumnType::Float;
+        else if (typeStr == "select") col.Type = ColumnType::Select;
         else if (typeStr == "string") col.Type = ColumnType::String;
         else col.Type = ColumnType::String;
         
-        columnDefines.push_back(col);
+        columnDefines.append(col);
     }
     
     // テーブル定義
@@ -188,12 +269,13 @@ int main(int argc, char* argv[]){
     // 行内容
     QJsonArray tableData = root["data"].toArray();
     for(const auto& d: tableData){
+        const auto& d_obj = d.toObject().toVariantMap();
+        
         QHash<QString, QVariant> rowData;
 
-        QJsonObject d_obj = d.toObject();
-        rowData["ID"] = d_obj["ID"].toInt();
-        rowData["Name"] = d_obj["Name"].toString();
-        rowData["Random"] = d_obj["Random"].toDouble();
+        for(auto [key, val] : d_obj.asKeyValueRange()){
+            rowData[key] = val;
+        }
 
         randomTable.addRowData(rowData);
     }

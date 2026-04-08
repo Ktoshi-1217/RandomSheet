@@ -14,13 +14,30 @@
             "key": "Random",
             "name": "乱数",
             "type": "float"
+        },
+        {
+            "key": "Importance",
+            "name": "重要度",
+            "type": "select"
         }
     ],
     "data": [
         {
-            "ID": 1,
+            "Name": "ホイミ",
+            "Importance": "2"
+        },
+        {
             "Name": "ベホイミ",
-            "Random": 0.876
+            "Importance": "3"
+        },
+        {
+            "ID": 10,
+            "Name": "ベホイム",
+            "Importance": "4"
+        },
+        {
+            "Name": "ベホマ",
+            "Importance": "1"
         }
     ]
 }
