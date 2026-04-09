@@ -24,20 +24,20 @@
     "data": [
         {
             "Name": "ホイミ",
-            "Importance": "2"
+            "Importance": 2
         },
         {
             "Name": "ベホイミ",
-            "Importance": "3"
+            "Importance": 3
         },
         {
             "ID": 10,
             "Name": "ベホイム",
-            "Importance": "4"
+            "Importance": 4
         },
         {
             "Name": "ベホマ",
-            "Importance": "1"
+            "Importance": 1
         }
     ]
 }

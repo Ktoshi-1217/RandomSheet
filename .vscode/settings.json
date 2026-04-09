@@ -1,3 +1,10 @@
 {
+    "cmake.configureSettings": {
+        "Qt6_DIR": "C:/msys64/mingw64/lib/cmake/Qt6"
+    },
+    "C_Cpp.default.includePath": [
+        "C:/msys64/mingw64/include/qt6",
+        "${workspaceFolder}/include"
+    ],
     "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json"
 }
